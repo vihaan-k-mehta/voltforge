@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { evaluateCompatibility, CompatibilityIssue } from '@/lib/compatibility';
 
-export type PartCategory = 'frame' | 'motor' | 'battery' | 'controller' | 'brakes' | 'suspension' | 'wheels';
+export type PartCategory = 'frame' | 'motor' | 'battery' | 'controller' | 'seat' | 'brakes' | 'suspension' | 'wheels';
 
 export interface Part {
   id: string;
@@ -26,6 +26,7 @@ const initialState: Record<PartCategory, Part | null> = {
   motor: null,
   battery: null,
   controller: null,
+  seat: null,
   brakes: null,
   suspension: null,
   wheels: null,

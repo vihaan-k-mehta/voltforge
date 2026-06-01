@@ -1,59 +1,236 @@
 "use client";
 
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { Canvas, useLoader } from "@react-three/fiber";
+import { OrbitControls, useGLTF, Html } from "@react-three/drei";
 import { useConfiguratorStore } from "@/store/useConfiguratorStore";
+import { Suspense, useEffect, useState, useMemo } from "react";
+import * as THREE from "three";
+import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
+import { cn } from "@/lib/utils";
 
-function BikePlaceholder() {
+type Vec3 = [number, number, number];
+type Transform = { pos: Vec3; rot: Vec3; scale: Vec3 };
+type TransformMap = Record<string, Transform>;
+
+interface ModelProps {
+  url: string;
+  position: Vec3;
+  rotation: Vec3;
+  scale: Vec3;
+  color: string;
+  metalness: number;
+  roughness: number;
+}
+
+// Registry mapping part IDs to their 3D model info
+const MODEL_REGISTRY: Record<string, {
+  type: "glb" | "stl";
+  url: string;
+  color: string;
+  metalness: number;
+  roughness: number;
+  label: string;
+}> = {
+  // Frames
+  f1: { type: "glb", url: "/models/surron.frame.glb",               color: "#888888", metalness: 0.6,  roughness: 0.4,  label: "Sur-Ron LBX" },
+  f2: { type: "glb", url: "/models/talaria.frame.glb",              color: "#555555", metalness: 0.7,  roughness: 0.3,  label: "Talaria Sting R" },
+  f3: { type: "stl", url: "/models/Ebox%20Frame.stl",               color: "#777777", metalness: 0.6,  roughness: 0.4,  label: "Ebox Frame" },
+  f4: { type: "stl", url: "/models/Eride%20Pro%20SS%20Frame.stl",   color: "#888888", metalness: 0.65, roughness: 0.35, label: "Eride Pro SS" },
+  f5: { type: "stl", url: "/models/Macfox%20X1S%20Frame.stl",       color: "#999999", metalness: 0.6,  roughness: 0.4,  label: "Macfox X1S" },
+  f6: { type: "stl", url: "/models/Talaria%20X3%20Frame.stl",       color: "#555555", metalness: 0.7,  roughness: 0.3,  label: "Talaria X3" },
+  f7: { type: "stl", url: "/models/Tuttio%20Frame.stl",             color: "#666666", metalness: 0.65, roughness: 0.35, label: "Tuttio Frame" },
+  f8: { type: "stl", url: "/models/Yozma%20IN10%20Frame.stl",       color: "#777777", metalness: 0.6,  roughness: 0.4,  label: "Yozma IN10" },
+  // Motors
+  m1: { type: "glb", url: "/models/sotionmotor.glb",                color: "#cccccc", metalness: 0.85, roughness: 0.15, label: "Sotion Motor" },
+  m2: { type: "glb", url: "/models/kofactoryspecmotor.glb",         color: "#eab308", metalness: 0.9,  roughness: 0.1,  label: "KO Factory Spec" },
+  m3: { type: "stl", url: "/models/Eride%20Pro%20SS%2072V%20Motor.stl", color: "#aaaaaa", metalness: 0.8, roughness: 0.2, label: "Eride Pro Motor" },
+  // Batteries
+  b3: { type: "stl", url: "/models/Chi%20Battery.stl",              color: "#ef4444", metalness: 0.3,  roughness: 0.7,  label: "Chi Battery" },
+  b4: { type: "stl", url: "/models/Tuttio%20Chi%20Battery.stl",     color: "#dc2626", metalness: 0.3,  roughness: 0.7,  label: "Tuttio Chi Battery" },
+  // Controllers
+  c2: { type: "stl", url: "/models/BAC4000%20Controller.stl",       color: "#10b981", metalness: 0.5,  roughness: 0.5,  label: "BAC4000" },
+  c3: { type: "stl", url: "/models/Eride%20Pro%20Controller.stl",   color: "#06b6d4", metalness: 0.5,  roughness: 0.5,  label: "Eride Pro Ctrl" },
+  // Seat
+  s1: { type: "stl", url: "/models/Eride%20OEM%20Seat.stl",         color: "#1c1c2e", metalness: 0.1,  roughness: 0.9,  label: "Eride OEM Seat" },
+};
+
+const DEFAULT_TRANSFORMS: TransformMap = {
+  f1: { pos: [-0.2, -0.9, 7.85],  rot: [-0.22, 1.55, 0.2],   scale: [0.01, 0.01, 0.01] },
+  f2: { pos: [1.75, -2.95, 3.80], rot: [-0.52, 1.55, 0.85],  scale: [10, 10, 10] },
+  f3: { pos: [0, 0, 0],           rot: [0, 0, 0],             scale: [1, 1, 1] },
+  f4: { pos: [0, 0, 0],           rot: [0, 0, 0],             scale: [1, 1, 1] },
+  f5: { pos: [0, 0, 0],           rot: [0, 0, 0],             scale: [1, 1, 1] },
+  f6: { pos: [0, 0, 0],           rot: [0, 0, 0],             scale: [1, 1, 1] },
+  f7: { pos: [0, 0, 0],           rot: [0, 0, 0],             scale: [1, 1, 1] },
+  f8: { pos: [0, 0, 0],           rot: [0, 0, 0],             scale: [1, 1, 1] },
+  m1: { pos: [0.7, -1.25, 2.50],  rot: [-1.55, 3.15, 6.27],  scale: [1, 1, 1] },
+  m2: { pos: [0.7, -1.25, 2.50],  rot: [-1.55, 3.15, 6.27],  scale: [0.01, 0.01, 0.01] },
+  m3: { pos: [0, 0, 0],           rot: [0, 0, 0],             scale: [1, 1, 1] },
+  b3: { pos: [0, 1.0, 0.2],       rot: [0, 0, 0],             scale: [1, 1, 1] },
+  b4: { pos: [0, 1.0, 0.2],       rot: [0, 0, 0],             scale: [1, 1, 1] },
+  c2: { pos: [0, 1.3, 0.7],       rot: [0, 0, 0],             scale: [1, 1, 1] },
+  c3: { pos: [0, 1.3, 0.7],       rot: [0, 0, 0],             scale: [1, 1, 1] },
+  s1: { pos: [0, 0, 0],           rot: [0, 0, 0],             scale: [1, 1, 1] },
+};
+
+useGLTF.preload("/models/surron.frame.glb");
+useGLTF.preload("/models/talaria.frame.glb");
+useGLTF.preload("/models/kofactoryspecmotor.glb");
+useGLTF.preload("/models/sotionmotor.glb");
+
+// ─── 3D Model Components ──────────────────────────────────────────────────────
+
+function GLBModelMesh({ url, position, rotation, scale, color, metalness, roughness }: ModelProps) {
+  const { scene } = useGLTF(url);
+
+  useEffect(() => {
+    scene.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        if (!mesh.userData.matSet) {
+          mesh.material = new THREE.MeshStandardMaterial({ color, metalness, roughness });
+          mesh.userData.matSet = true;
+        } else {
+          (mesh.material as THREE.MeshStandardMaterial).color.set(color);
+        }
+      }
+    });
+  }, [scene, color, metalness, roughness]);
+
+  return <primitive object={scene} position={position} rotation={rotation} scale={scale} />;
+}
+
+function STLModelMesh({ url, position, rotation, scale, color, metalness, roughness }: ModelProps) {
+  const geometry = useLoader(STLLoader, url);
+
+  useEffect(() => {
+    geometry.computeBoundingBox();
+    geometry.center();
+    geometry.computeVertexNormals();
+  }, [geometry]);
+
+  return (
+    <mesh geometry={geometry} position={position} rotation={rotation} scale={scale}>
+      <meshStandardMaterial color={color} metalness={metalness} roughness={roughness} />
+    </mesh>
+  );
+}
+
+function PartModel({ partId, transform }: { partId: string; transform: Transform }) {
+  const entry = MODEL_REGISTRY[partId];
+  if (!entry || !transform) return null;
+
+  const props: ModelProps = {
+    url: entry.url,
+    position: transform.pos,
+    rotation: transform.rot,
+    scale: transform.scale,
+    color: entry.color,
+    metalness: entry.metalness,
+    roughness: entry.roughness,
+  };
+
+  return entry.type === "glb" ? <GLBModelMesh {...props} /> : <STLModelMesh {...props} />;
+}
+
+function LoadingOverlay({ message }: { message: string }) {
+  return (
+    <group position={[0, 1.2, 0]}>
+      <Html center>
+        <div className="bg-black/80 text-white px-4 py-2 rounded-lg border border-white/20 whitespace-nowrap text-sm">
+          {message}
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+// ─── Scene Geometry ───────────────────────────────────────────────────────────
+
+function BikePlaceholder({ transforms }: { transforms: TransformMap }) {
   const { selectedParts } = useConfiguratorStore();
+  const frameId      = selectedParts.frame?.id;
+  const motorId      = selectedParts.motor?.id;
+  const batteryId    = selectedParts.battery?.id;
+  const controllerId = selectedParts.controller?.id;
+  const seatId       = selectedParts.seat?.id;
+
+  const t = (id: string) => transforms[id] ?? DEFAULT_TRANSFORMS[id] ?? { pos: [0,0,0] as Vec3, rot: [0,0,0] as Vec3, scale: [1,1,1] as Vec3 };
 
   return (
     <group position={[0, -1, 0]}>
-      {/* Frame Main Body (angled) */}
-      <group position={[0, 1.2, 0]}>
-        <mesh rotation={[-Math.PI / 6, 0, 0]}>
-          <boxGeometry args={[0.2, 0.2, 1.2]} />
-          <meshStandardMaterial color={selectedParts.frame ? "#3b82f6" : "#27272a"} metalness={0.8} roughness={0.2} />
-        </mesh>
-        
-        {/* Frame Swingarm */}
-        <mesh position={[0, -0.4, -0.5]} rotation={[Math.PI / 8, 0, 0]}>
-          <boxGeometry args={[0.25, 0.15, 0.8]} />
-          <meshStandardMaterial color={selectedParts.frame ? "#3b82f6" : "#27272a"} metalness={0.8} roughness={0.2} />
-        </mesh>
-      </group>
+      {/* Frame */}
+      {frameId && MODEL_REGISTRY[frameId] ? (
+        <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[frameId].label}…`} />}>
+          <PartModel partId={frameId} transform={t(frameId)} />
+        </Suspense>
+      ) : (
+        <group position={[0, 1.2, 0]}>
+          <mesh rotation={[-Math.PI / 6, 0, 0]}>
+            <boxGeometry args={[0.2, 0.2, 1.2]} />
+            <meshStandardMaterial color={selectedParts.frame ? "#3b82f6" : "#27272a"} metalness={0.8} roughness={0.2} />
+          </mesh>
+          <mesh position={[0, -0.4, -0.5]} rotation={[Math.PI / 8, 0, 0]}>
+            <boxGeometry args={[0.25, 0.15, 0.8]} />
+            <meshStandardMaterial color={selectedParts.frame ? "#3b82f6" : "#27272a"} metalness={0.8} roughness={0.2} />
+          </mesh>
+        </group>
+      )}
 
-      {/* Battery (Inside the frame) */}
-      <group position={[0, 1.0, 0.2]}>
-        <mesh rotation={[-Math.PI / 6, 0, 0]}>
-          <boxGeometry args={[0.18, 0.4, 0.6]} />
-          <meshStandardMaterial color={selectedParts.battery ? "#ef4444" : "#18181b"} roughness={0.8} />
-        </mesh>
-      </group>
+      {/* Battery */}
+      {batteryId && MODEL_REGISTRY[batteryId] ? (
+        <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[batteryId].label}…`} />}>
+          <PartModel partId={batteryId} transform={t(batteryId)} />
+        </Suspense>
+      ) : (
+        <group position={[0, 1.0, 0.2]}>
+          <mesh rotation={[-Math.PI / 6, 0, 0]}>
+            <boxGeometry args={[0.18, 0.4, 0.6]} />
+            <meshStandardMaterial color={selectedParts.battery ? "#ef4444" : "#18181b"} roughness={0.8} />
+          </mesh>
+        </group>
+      )}
 
-      {/* Controller (Mounted on the front) */}
-      <group position={[0, 1.3, 0.7]}>
-        <mesh rotation={[-Math.PI / 4, 0, 0]}>
-          <boxGeometry args={[0.15, 0.3, 0.1]} />
-          <meshStandardMaterial color={selectedParts.controller ? "#10b981" : "#3f3f46"} metalness={0.5} roughness={0.5} />
-        </mesh>
-      </group>
+      {/* Controller */}
+      {controllerId && MODEL_REGISTRY[controllerId] ? (
+        <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[controllerId].label}…`} />}>
+          <PartModel partId={controllerId} transform={t(controllerId)} />
+        </Suspense>
+      ) : (
+        <group position={[0, 1.3, 0.7]}>
+          <mesh rotation={[-Math.PI / 4, 0, 0]}>
+            <boxGeometry args={[0.15, 0.3, 0.1]} />
+            <meshStandardMaterial color={selectedParts.controller ? "#10b981" : "#3f3f46"} metalness={0.5} roughness={0.5} />
+          </mesh>
+        </group>
+      )}
 
-      {/* Motor (At the bottom bracket) */}
-      <group position={[0, 0.7, 0.1]}>
-        <mesh rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.12, 0.12, 0.25, 32]} />
-          <meshStandardMaterial color={selectedParts.motor ? "#eab308" : "#3f3f46"} metalness={0.9} roughness={0.1} />
-        </mesh>
-      </group>
+      {/* Motor */}
+      {motorId && MODEL_REGISTRY[motorId] ? (
+        <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[motorId].label}…`} />}>
+          <PartModel partId={motorId} transform={t(motorId)} />
+        </Suspense>
+      ) : (
+        <group position={[0, 0.7, 0.1]}>
+          <mesh rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.12, 0.12, 0.25, 32]} />
+            <meshStandardMaterial color={selectedParts.motor ? "#eab308" : "#3f3f46"} metalness={0.9} roughness={0.1} />
+          </mesh>
+        </group>
+      )}
 
-      {/* Front Wheel */}
+      {/* Seat */}
+      {seatId && MODEL_REGISTRY[seatId] && (
+        <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[seatId].label}…`} />}>
+          <PartModel partId={seatId} transform={t(seatId)} />
+        </Suspense>
+      )}
+
+      {/* Wheels */}
       <mesh position={[0, 0.6, 1.1]} rotation={[0, 0, Math.PI / 2]}>
         <cylinderGeometry args={[0.6, 0.6, 0.1, 32]} />
         <meshStandardMaterial color="#111" />
       </mesh>
-
-      {/* Rear Wheel */}
       <mesh position={[0, 0.6, -1.1]} rotation={[0, 0, Math.PI / 2]}>
         <cylinderGeometry args={[0.6, 0.6, 0.1, 32]} />
         <meshStandardMaterial color="#111" />
@@ -62,30 +239,219 @@ function BikePlaceholder() {
   );
 }
 
-export function Scene() {
-  return (
-    <Canvas camera={{ position: [4, 2, 4], fov: 45 }}>
-      <color attach="background" args={["#09090b"]} />
-      
-      <ambientLight intensity={0.5} />
-      <directionalLight 
-        position={[10, 10, 5]} 
-        intensity={2} 
-      />
-      {/* Fallback lighting instead of Environment preset to avoid WebGL crashes */}
-      <pointLight position={[-10, -10, -10]} intensity={1} />
-      <pointLight position={[10, 0, -10]} intensity={1} />
+// ─── Position Tool UI ─────────────────────────────────────────────────────────
 
-      <BikePlaceholder />
-      
-      <OrbitControls 
-        makeDefault
-        minPolarAngle={Math.PI / 4}
-        maxPolarAngle={Math.PI / 2 + 0.1}
-        enablePan={false}
-        minDistance={3}
-        maxDistance={10}
+function SliderRow({ label, value, min, max, step, onChange }: {
+  label: string; value: number; min: number; max: number; step: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-zinc-400 text-xs w-5 shrink-0">{label}</span>
+      <input
+        type="range" min={min} max={max} step={step} value={value}
+        onChange={e => onChange(parseFloat(e.target.value))}
+        className="flex-1 h-1 accent-blue-500"
       />
-    </Canvas>
+      <span className="text-zinc-200 text-xs font-mono w-14 text-right">{value.toFixed(3)}</span>
+    </div>
+  );
+}
+
+function PositionTool({
+  activeId,
+  setActiveId,
+  models,
+  transforms,
+  setTransforms,
+}: {
+  activeId: string | null;
+  setActiveId: (id: string) => void;
+  models: { partId: string; label: string }[];
+  transforms: TransformMap;
+  setTransforms: React.Dispatch<React.SetStateAction<TransformMap>>;
+}) {
+  const [open, setOpen] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  if (models.length === 0) return null;
+
+  const current = activeId && transforms[activeId] ? activeId : models[0].partId;
+  const t = transforms[current] ?? DEFAULT_TRANSFORMS[current];
+
+  const setAxis = (key: keyof Transform, axis: 0 | 1 | 2) => (v: number) => {
+    setTransforms(prev => {
+      const arr = [...(prev[current][key])] as Vec3;
+      arr[axis] = v;
+      return { ...prev, [current]: { ...prev[current], [key]: arr } };
+    });
+  };
+
+  const setUniformScale = (v: number) =>
+    setTransforms(prev => ({ ...prev, [current]: { ...prev[current], scale: [v, v, v] } }));
+
+  const reset = () =>
+    setTransforms(prev => ({
+      ...prev,
+      [current]: DEFAULT_TRANSFORMS[current] ?? { pos: [0,0,0], rot: [0,0,0], scale: [1,1,1] },
+    }));
+
+  const copyAll = () => {
+    const out: Record<string, object> = {};
+    for (const { partId } of models) {
+      const tr = transforms[partId] ?? DEFAULT_TRANSFORMS[partId];
+      if (tr) out[partId] = { position: tr.pos, rotation: tr.rot, scale: tr.scale };
+    }
+    navigator.clipboard.writeText(JSON.stringify(out, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <div className="absolute bottom-4 right-4 w-72 bg-zinc-900/95 border border-white/10 rounded-xl shadow-2xl text-sm overflow-hidden">
+      {/* Header */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-zinc-200 font-medium hover:bg-white/5 transition-colors"
+      >
+        <span>Position Tool</span>
+        <span className="text-zinc-500 text-xs">{open ? "▲" : "▼"}</span>
+      </button>
+
+      {open && (
+        <div className="border-t border-white/10">
+          {/* Model tabs */}
+          <div className="flex gap-1 px-3 py-2 overflow-x-auto border-b border-white/10">
+            {models.map(({ partId, label }) => (
+              <button
+                key={partId}
+                onClick={() => setActiveId(partId)}
+                className={cn(
+                  "px-2.5 py-1 rounded text-xs whitespace-nowrap transition-colors shrink-0",
+                  current === partId
+                    ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                    : "text-zinc-400 hover:text-white border border-transparent"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Sliders */}
+          <div className="px-4 py-3 space-y-4">
+            <div className="space-y-2">
+              <div className="text-xs text-zinc-500 uppercase tracking-wider">Position</div>
+              <SliderRow label="X" value={t.pos[0]} min={-100} max={100} step={0.01} onChange={setAxis("pos", 0)} />
+              <SliderRow label="Y" value={t.pos[1]} min={-100} max={100} step={0.01} onChange={setAxis("pos", 1)} />
+              <SliderRow label="Z" value={t.pos[2]} min={-100} max={100} step={0.01} onChange={setAxis("pos", 2)} />
+            </div>
+            <div className="space-y-2">
+              <div className="text-xs text-zinc-500 uppercase tracking-wider">Rotation (rad)</div>
+              <SliderRow label="X" value={t.rot[0]} min={-Math.PI} max={Math.PI} step={0.01} onChange={setAxis("rot", 0)} />
+              <SliderRow label="Y" value={t.rot[1]} min={-Math.PI} max={Math.PI} step={0.01} onChange={setAxis("rot", 1)} />
+              <SliderRow label="Z" value={t.rot[2]} min={-Math.PI} max={Math.PI} step={0.01} onChange={setAxis("rot", 2)} />
+            </div>
+            <div className="space-y-2">
+              <div className="text-xs text-zinc-500 uppercase tracking-wider">Scale (uniform)</div>
+              <SliderRow label="S" value={t.scale[0]} min={0.001} max={50} step={0.001} onChange={setUniformScale} />
+            </div>
+
+            {/* Code preview */}
+            <div className="p-2 bg-zinc-800/60 rounded-lg font-mono text-xs text-zinc-300 leading-relaxed select-all">
+              <div>pos: [{t.pos.map(v => v.toFixed(3)).join(", ")}]</div>
+              <div>rot: [{t.rot.map(v => v.toFixed(3)).join(", ")}]</div>
+              <div>scale: [{t.scale.map(v => v.toFixed(4)).join(", ")}]</div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2">
+              <button
+                onClick={reset}
+                className="flex-1 py-1.5 text-xs rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-200 transition-colors"
+              >
+                Reset
+              </button>
+              <button
+                onClick={copyAll}
+                className="flex-1 py-1.5 text-xs rounded bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 transition-colors"
+              >
+                {copied ? "Copied!" : "Copy All JSON"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Root Scene ───────────────────────────────────────────────────────────────
+
+function loadTransforms(): TransformMap {
+  try {
+    const raw = localStorage.getItem("voltforge_transforms");
+    if (raw) return { ...DEFAULT_TRANSFORMS, ...JSON.parse(raw) };
+  } catch {}
+  return { ...DEFAULT_TRANSFORMS };
+}
+
+export function Scene() {
+  const { selectedParts } = useConfiguratorStore();
+
+  const [transforms, setTransforms] = useState<TransformMap>(() =>
+    typeof window !== "undefined" ? loadTransforms() : { ...DEFAULT_TRANSFORMS }
+  );
+  const [activeModelId, setActiveModelId] = useState<string | null>(null);
+
+  // Persist transforms to localStorage on every change
+  useEffect(() => {
+    localStorage.setItem("voltforge_transforms", JSON.stringify(transforms));
+  }, [transforms]);
+
+  // Compute which selected parts have 3D models
+  const activeModels = useMemo(() =>
+    Object.values(selectedParts)
+      .filter((part): part is NonNullable<typeof part> => !!part && !!MODEL_REGISTRY[part.id])
+      .map(part => ({ partId: part.id, label: MODEL_REGISTRY[part.id].label })),
+    [selectedParts]
+  );
+
+  // Keep activeModelId pointing at a valid selection
+  useEffect(() => {
+    if (activeModels.length === 0) {
+      setActiveModelId(null);
+    } else if (!activeModels.find(m => m.partId === activeModelId)) {
+      setActiveModelId(activeModels[0].partId);
+    }
+  }, [activeModels, activeModelId]);
+
+  return (
+    <div className="relative h-full w-full">
+      <Canvas camera={{ position: [4, 2, 4], fov: 45 }}>
+        <color attach="background" args={["#09090b"]} />
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[10, 10, 5]} intensity={2} />
+        <pointLight position={[-10, -10, -10]} intensity={1} />
+        <pointLight position={[10, 0, -10]} intensity={1} />
+        <BikePlaceholder transforms={transforms} />
+        <OrbitControls
+          makeDefault
+          minPolarAngle={Math.PI / 4}
+          maxPolarAngle={Math.PI / 2 + 0.1}
+          enablePan={false}
+          minDistance={3}
+          maxDistance={10}
+        />
+      </Canvas>
+
+      <PositionTool
+        activeId={activeModelId}
+        setActiveId={setActiveModelId}
+        models={activeModels}
+        transforms={transforms}
+        setTransforms={setTransforms}
+      />
+    </div>
   );
 }
