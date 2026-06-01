@@ -7,6 +7,8 @@ import { Suspense, useEffect, useState, useMemo } from "react";
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { cn } from "@/lib/utils";
+import { PARTS_CONFIG, PARTS_BY_ID, type PartModel3D } from "@/data/parts";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 type Vec3 = [number, number, number];
 type Transform = { pos: Vec3; rot: Vec3; scale: Vec3 };
@@ -22,56 +24,21 @@ interface ModelProps {
   roughness: number;
 }
 
-// Registry mapping part IDs to their 3D model info
-const MODEL_REGISTRY: Record<string, {
-  type: "glb" | "stl";
-  url: string;
-  color: string;
-  metalness: number;
-  roughness: number;
-  label: string;
-}> = {
-  // Frames
-  f1: { type: "glb", url: "/models/surron.frame.glb",               color: "#888888", metalness: 0.6,  roughness: 0.4,  label: "Sur-Ron LBX" },
-  f2: { type: "glb", url: "/models/talaria.frame.glb",              color: "#555555", metalness: 0.7,  roughness: 0.3,  label: "Talaria Sting R" },
-  f3: { type: "stl", url: "/models/Ebox%20Frame.stl",               color: "#777777", metalness: 0.6,  roughness: 0.4,  label: "Ebox Frame" },
-  f4: { type: "stl", url: "/models/Eride%20Pro%20SS%20Frame.stl",   color: "#888888", metalness: 0.65, roughness: 0.35, label: "Eride Pro SS" },
-  f5: { type: "stl", url: "/models/Macfox%20X1S%20Frame.stl",       color: "#999999", metalness: 0.6,  roughness: 0.4,  label: "Macfox X1S" },
-  f6: { type: "stl", url: "/models/Talaria%20X3%20Frame.stl",       color: "#555555", metalness: 0.7,  roughness: 0.3,  label: "Talaria X3" },
-  f7: { type: "stl", url: "/models/Tuttio%20Frame.stl",             color: "#666666", metalness: 0.65, roughness: 0.35, label: "Tuttio Frame" },
-  f8: { type: "stl", url: "/models/Yozma%20IN10%20Frame.stl",       color: "#777777", metalness: 0.6,  roughness: 0.4,  label: "Yozma IN10" },
-  // Motors
-  m1: { type: "glb", url: "/models/sotionmotor.glb",                color: "#cccccc", metalness: 0.85, roughness: 0.15, label: "Sotion Motor" },
-  m2: { type: "glb", url: "/models/kofactoryspecmotor.glb",         color: "#eab308", metalness: 0.9,  roughness: 0.1,  label: "KO Factory Spec" },
-  m3: { type: "stl", url: "/models/Eride%20Pro%20SS%2072V%20Motor.stl", color: "#aaaaaa", metalness: 0.8, roughness: 0.2, label: "Eride Pro Motor" },
-  // Batteries
-  b3: { type: "stl", url: "/models/Chi%20Battery.stl",              color: "#ef4444", metalness: 0.3,  roughness: 0.7,  label: "Chi Battery" },
-  b4: { type: "stl", url: "/models/Tuttio%20Chi%20Battery.stl",     color: "#dc2626", metalness: 0.3,  roughness: 0.7,  label: "Tuttio Chi Battery" },
-  // Controllers
-  c2: { type: "stl", url: "/models/BAC4000%20Controller.stl",       color: "#10b981", metalness: 0.5,  roughness: 0.5,  label: "BAC4000" },
-  c3: { type: "stl", url: "/models/Eride%20Pro%20Controller.stl",   color: "#06b6d4", metalness: 0.5,  roughness: 0.5,  label: "Eride Pro Ctrl" },
-  // Seat
-  s1: { type: "stl", url: "/models/Eride%20OEM%20Seat.stl",         color: "#1c1c2e", metalness: 0.1,  roughness: 0.9,  label: "Eride OEM Seat" },
-};
+// ─── Derived from PARTS_CONFIG (single source of truth) ──────────────────────
 
-const DEFAULT_TRANSFORMS: TransformMap = {
-  f1: { pos: [-0.2, -0.9, 7.85],  rot: [-0.22, 1.55, 0.2],   scale: [0.01, 0.01, 0.01] },
-  f2: { pos: [1.75, -2.95, 3.80], rot: [-0.52, 1.55, 0.85],  scale: [10, 10, 10] },
-  f3: { pos: [0, 0, 0],           rot: [0, 0, 0],             scale: [1, 1, 1] },
-  f4: { pos: [0, 0, 0],           rot: [0, 0, 0],             scale: [1, 1, 1] },
-  f5: { pos: [0, 0, 0],           rot: [0, 0, 0],             scale: [1, 1, 1] },
-  f6: { pos: [0, 0, 0],           rot: [0, 0, 0],             scale: [1, 1, 1] },
-  f7: { pos: [0, 0, 0],           rot: [0, 0, 0],             scale: [1, 1, 1] },
-  f8: { pos: [0, 0, 0],           rot: [0, 0, 0],             scale: [1, 1, 1] },
-  m1: { pos: [0.7, -1.25, 2.50],  rot: [-1.55, 3.15, 6.27],  scale: [1, 1, 1] },
-  m2: { pos: [0.7, -1.25, 2.50],  rot: [-1.55, 3.15, 6.27],  scale: [0.01, 0.01, 0.01] },
-  m3: { pos: [0, 0, 0],           rot: [0, 0, 0],             scale: [1, 1, 1] },
-  b3: { pos: [0, 1.0, 0.2],       rot: [0, 0, 0],             scale: [1, 1, 1] },
-  b4: { pos: [0, 1.0, 0.2],       rot: [0, 0, 0],             scale: [1, 1, 1] },
-  c2: { pos: [0, 1.3, 0.7],       rot: [0, 0, 0],             scale: [1, 1, 1] },
-  c3: { pos: [0, 1.3, 0.7],       rot: [0, 0, 0],             scale: [1, 1, 1] },
-  s1: { pos: [0, 0, 0],           rot: [0, 0, 0],             scale: [1, 1, 1] },
-};
+const MODEL_REGISTRY: Record<string, PartModel3D> = Object.fromEntries(
+  PARTS_CONFIG
+    .filter((p): p is typeof p & { model: PartModel3D } => p.model !== undefined)
+    .map(p => [p.id, p.model])
+);
+
+const DEFAULT_TRANSFORMS: TransformMap = Object.fromEntries(
+  PARTS_CONFIG
+    .filter((p): p is typeof p & { mountOffset: Transform } => p.mountOffset !== undefined)
+    .map(p => [p.id, p.mountOffset])
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 useGLTF.preload("/models/surron.frame.glb");
 useGLTF.preload("/models/talaria.frame.glb");
@@ -270,9 +237,8 @@ function SliderRow({ label, value, min, max, step, onChange }: {
         onChange={e => setDraft(e.target.value)}
         onBlur={e => commit(e.target.value)}
         onKeyDown={e => {
-          if (e.key === "Enter") { commit((e.target as HTMLInputElement).value); (e.target as HTMLInputElement).blur(); }
+          if (e.key === "Enter")  { commit((e.target as HTMLInputElement).value); (e.target as HTMLInputElement).blur(); }
           if (e.key === "Escape") { setDraft(null); (e.target as HTMLInputElement).blur(); }
-          // arrow up/down nudge by step
           if (e.key === "ArrowUp")   { e.preventDefault(); onChange(parseFloat((value + step).toFixed(10))); }
           if (e.key === "ArrowDown") { e.preventDefault(); onChange(parseFloat((value - step).toFixed(10))); }
         }}
@@ -331,6 +297,8 @@ function PositionTool({
     setTimeout(() => setCopied(false), 1500);
   };
 
+  const isUncalibrated = PARTS_BY_ID[current]?.calibrated === false;
+
   return (
     <div className="absolute bottom-4 right-4 w-72 bg-zinc-900/95 border border-white/10 rounded-xl shadow-2xl text-sm overflow-hidden">
       {/* Header */}
@@ -361,6 +329,14 @@ function PositionTool({
               </button>
             ))}
           </div>
+
+          {/* Calibration warning */}
+          {isUncalibrated && (
+            <div className="mx-3 mt-2.5 px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-xs text-yellow-400 flex items-start gap-1.5">
+              <span className="shrink-0">⚠</span>
+              <span>Uncalibrated — transforms are placeholder values. Adjust position, then copy values to <code className="font-mono">parts.ts</code>.</span>
+            </div>
+          )}
 
           {/* Sliders */}
           <div className="px-4 py-3 space-y-4">
@@ -452,22 +428,24 @@ export function Scene() {
 
   return (
     <div className="relative h-full w-full">
-      <Canvas camera={{ position: [4, 2, 4], fov: 45 }}>
-        <color attach="background" args={["#09090b"]} />
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[10, 10, 5]} intensity={2} />
-        <pointLight position={[-10, -10, -10]} intensity={1} />
-        <pointLight position={[10, 0, -10]} intensity={1} />
-        <BikePlaceholder transforms={transforms} />
-        <OrbitControls
-          makeDefault
-          minPolarAngle={Math.PI / 4}
-          maxPolarAngle={Math.PI / 2 + 0.1}
-          enablePan={false}
-          minDistance={3}
-          maxDistance={10}
-        />
-      </Canvas>
+      <ErrorBoundary>
+        <Canvas camera={{ position: [4, 2, 4], fov: 45 }}>
+          <color attach="background" args={["#09090b"]} />
+          <ambientLight intensity={0.5} />
+          <directionalLight position={[10, 10, 5]} intensity={2} />
+          <pointLight position={[-10, -10, -10]} intensity={1} />
+          <pointLight position={[10, 0, -10]} intensity={1} />
+          <BikePlaceholder transforms={transforms} />
+          <OrbitControls
+            makeDefault
+            minPolarAngle={Math.PI / 4}
+            maxPolarAngle={Math.PI / 2 + 0.1}
+            enablePan={false}
+            minDistance={3}
+            maxDistance={10}
+          />
+        </Canvas>
+      </ErrorBoundary>
 
       <PositionTool
         activeId={activeModelId}

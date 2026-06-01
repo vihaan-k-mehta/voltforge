@@ -9,7 +9,6 @@ export interface Part {
   category: PartCategory;
   price: number;
   manufacturer: string;
-  modelUrl?: string; // Placeholder for future 3D model
   specs?: Record<string, string | number | boolean | string[]>;
 }
 
