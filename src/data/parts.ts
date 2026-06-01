@@ -53,9 +53,7 @@ export const PARTS_CONFIG: PartConfig[] = [
     id: "f1", name: "Light Bee X Frame", category: "frame",
     price: 450, manufacturer: "Sur-Ron",
     specs: { mount_type: "sur-ron" },
-    model: { type: "glb", url: "/models/surron.frame.glb", label: "Sur-Ron LBX",
-             color: "#888888", metalness: 0.6,  roughness: 0.4 },
-    mountOffset: { pos: [-0.2, -0.9, 7.85], rot: [-0.22, 1.55, 0.2],  scale: [0.01, 0.01, 0.01] },
+    // surron.frame.glb hosted externally — placeholder until CDN URL is set
     calibrated: true,
   },
   {

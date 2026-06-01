@@ -40,7 +40,6 @@ const DEFAULT_TRANSFORMS: TransformMap = Object.fromEntries(
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-useGLTF.preload("/models/surron.frame.glb");
 useGLTF.preload("/models/talaria.frame.glb");
 useGLTF.preload("/models/kofactoryspecmotor.glb");
 useGLTF.preload("/models/sotionmotor.glb");

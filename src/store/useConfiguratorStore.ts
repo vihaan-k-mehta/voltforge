@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { evaluateCompatibility, CompatibilityIssue } from '@/lib/compatibility';
 
 export type PartCategory = 'frame' | 'motor' | 'battery' | 'controller' | 'seat' | 'brakes' | 'suspension' | 'wheels';
@@ -31,25 +32,26 @@ const initialState: Record<PartCategory, Part | null> = {
   wheels: null,
 };
 
-export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
-  selectedParts: initialState,
-  issues: [],
-  setPart: (category, part) => {
-    set((state) => {
-      const newParts = {
-        ...state.selectedParts,
-        [category]: part
-      };
-      const newIssues = evaluateCompatibility(newParts);
-      return {
-        selectedParts: newParts,
-        issues: newIssues
-      };
-    });
-  },
-  clearBuild: () => set({ selectedParts: initialState, issues: [] }),
-  totalPrice: () => {
-    const parts = Object.values(get().selectedParts);
-    return parts.reduce((total, part) => total + (part?.price || 0), 0);
-  }
-}));
+export const useConfiguratorStore = create<ConfiguratorState>()(
+  persist(
+    (set, get) => ({
+      selectedParts: initialState,
+      issues: [],
+      setPart: (category, part) => {
+        set((state) => {
+          const newParts = { ...state.selectedParts, [category]: part };
+          return { selectedParts: newParts, issues: evaluateCompatibility(newParts) };
+        });
+      },
+      clearBuild: () => set({ selectedParts: initialState, issues: [] }),
+      totalPrice: () => {
+        const parts = Object.values(get().selectedParts);
+        return parts.reduce((total, part) => total + (part?.price || 0), 0);
+      },
+    }),
+    {
+      name: 'voltforge_build',
+      partialize: (state) => ({ selectedParts: state.selectedParts }),
+    }
+  )
+);

@@ -2,7 +2,7 @@
 
 import { useConfiguratorStore, PartCategory } from "@/store/useConfiguratorStore";
 import { PARTS_BY_CATEGORY } from "@/data/parts";
-import { useState, type FC } from "react";
+import { useState, useRef, type FC } from "react";
 import { ChevronRight, Settings2, Battery, Zap, Activity, Armchair } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,16 @@ const CATEGORIES: { id: PartCategory; label: string; icon: FC<{ className?: stri
 export function Sidebar() {
   const { selectedParts, setPart, totalPrice, issues } = useConfiguratorStore();
   const [activeCategory, setActiveCategory] = useState<PartCategory | null>(null);
+  const [saved, setSaved] = useState(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSave = () => {
+    // selectedParts are already persisted by the Zustand persist middleware;
+    // this just gives the user explicit confirmation.
+    setSaved(true);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => setSaved(false), 2000);
+  };
 
   return (
     <div className="flex flex-col h-full bg-zinc-950/80 backdrop-blur-xl">
@@ -31,10 +41,10 @@ export function Sidebar() {
         </div>
 
         <button
-          onClick={() => alert("Build saved successfully! (Mock)")}
+          onClick={handleSave}
           className="w-full mt-4 bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
         >
-          Save Build
+          {saved ? "Build Saved!" : "Save Build"}
         </button>
       </div>
 
