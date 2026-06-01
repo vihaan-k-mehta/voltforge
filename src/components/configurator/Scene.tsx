@@ -245,15 +245,39 @@ function SliderRow({ label, value, min, max, step, onChange }: {
   label: string; value: number; min: number; max: number; step: number;
   onChange: (v: number) => void;
 }) {
+  const [draft, setDraft] = useState<string | null>(null);
+
+  const commit = (raw: string) => {
+    const n = parseFloat(raw);
+    if (!isNaN(n) && isFinite(n)) onChange(n);
+    setDraft(null);
+  };
+
   return (
     <div className="flex items-center gap-2">
       <span className="text-zinc-400 text-xs w-5 shrink-0">{label}</span>
       <input
-        type="range" min={min} max={max} step={step} value={value}
+        type="range"
+        min={min} max={max} step={step}
+        value={Math.min(max, Math.max(min, value))}
         onChange={e => onChange(parseFloat(e.target.value))}
-        className="flex-1 h-1 accent-blue-500"
+        className="flex-1 h-1 accent-blue-500 min-w-0"
       />
-      <span className="text-zinc-200 text-xs font-mono w-14 text-right">{value.toFixed(3)}</span>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={draft !== null ? draft : value.toFixed(5)}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={e => commit(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === "Enter") { commit((e.target as HTMLInputElement).value); (e.target as HTMLInputElement).blur(); }
+          if (e.key === "Escape") { setDraft(null); (e.target as HTMLInputElement).blur(); }
+          // arrow up/down nudge by step
+          if (e.key === "ArrowUp")   { e.preventDefault(); onChange(parseFloat((value + step).toFixed(10))); }
+          if (e.key === "ArrowDown") { e.preventDefault(); onChange(parseFloat((value - step).toFixed(10))); }
+        }}
+        className="w-24 shrink-0 bg-zinc-800 border border-white/10 rounded px-1.5 py-0.5 text-xs font-mono text-zinc-100 text-right focus:outline-none focus:border-blue-500/60 focus:bg-zinc-700/80 transition-colors"
+      />
     </div>
   );
 }
@@ -354,7 +378,7 @@ function PositionTool({
             </div>
             <div className="space-y-2">
               <div className="text-xs text-zinc-500 uppercase tracking-wider">Scale (uniform)</div>
-              <SliderRow label="S" value={t.scale[0]} min={0.001} max={50} step={0.001} onChange={setUniformScale} />
+              <SliderRow label="S" value={t.scale[0]} min={0.0001} max={100} step={0.0001} onChange={setUniformScale} />
             </div>
 
             {/* Code preview */}
