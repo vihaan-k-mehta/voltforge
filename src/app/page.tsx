@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { Scene } from "@/components/configurator/Scene";
 import { Sidebar } from "@/components/configurator/Sidebar";
+import { FrameLabel } from "@/components/configurator/FrameLabel";
 
 export default function ConfiguratorPage() {
   return (
@@ -18,7 +19,7 @@ export default function ConfiguratorPage() {
         {/* Overlay Stats/Info */}
         <div className="absolute top-4 left-4 glass-panel rounded-lg p-4 pointer-events-none">
           <h2 className="text-xl font-bold">Custom Build</h2>
-          <p className="text-sm text-zinc-400 mt-1">Sur-Ron Light Bee X Base</p>
+          <FrameLabel />
         </div>
       </div>
 

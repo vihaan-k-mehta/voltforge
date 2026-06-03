@@ -49,16 +49,6 @@ export function Sidebar() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-        {selectedParts.frame?.id === "f2" && (
-          <div className="p-3 rounded-lg text-sm flex items-start gap-2 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
-            <Activity className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>
-              <strong>Disclaimer:</strong> The Talaria Sting R 3D model is currently experimental and highly buggy.
-              Visual placement for batteries, motors, and controllers will not work properly on this frame yet.
-            </span>
-          </div>
-        )}
-
         {issues.length > 0 && (
           <div className="space-y-2">
             {issues.map((issue, idx) => (

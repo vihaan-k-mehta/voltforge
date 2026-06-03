@@ -3,7 +3,7 @@
 import { Canvas, useLoader } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Html } from "@react-three/drei";
 import { useConfiguratorStore } from "@/store/useConfiguratorStore";
-import { Suspense, useEffect, useState, useMemo } from "react";
+import { Suspense, useEffect, useState, useMemo, Component, type ReactNode } from "react";
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { cn } from "@/lib/utils";
@@ -40,25 +40,22 @@ const DEFAULT_TRANSFORMS: TransformMap = Object.fromEntries(
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-useGLTF.preload("/models/talaria.frame.glb");
-useGLTF.preload("/models/kofactoryspecmotor.glb");
-useGLTF.preload("/models/sotionmotor.glb");
+useGLTF.setDecoderPath("/draco/");
+useGLTF.preload("/models/talaria.frame.draco.glb");
+useGLTF.preload("/models/kofactoryspecmotor.draco.glb");
+useGLTF.preload("/models/sotionmotor.draco.glb");
 
 // ─── 3D Model Components ──────────────────────────────────────────────────────
 
 function GLBModelMesh({ url, position, rotation, scale, color, metalness, roughness }: ModelProps) {
-  const { scene } = useGLTF(url);
+  const { scene: original } = useGLTF(url);
+  // Clone so each instance owns its own scene graph — avoids shared material mutation
+  const scene = useMemo(() => original.clone(true), [original]);
 
   useEffect(() => {
     scene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        if (!mesh.userData.matSet) {
-          mesh.material = new THREE.MeshStandardMaterial({ color, metalness, roughness });
-          mesh.userData.matSet = true;
-        } else {
-          (mesh.material as THREE.MeshStandardMaterial).color.set(color);
-        }
+        (child as THREE.Mesh).material = new THREE.MeshStandardMaterial({ color, metalness, roughness });
       }
     });
   }, [scene, color, metalness, roughness]);
@@ -111,6 +108,13 @@ function LoadingOverlay({ message }: { message: string }) {
   );
 }
 
+// Catches per-model load failures inside the Canvas — degrades to empty slot, not canvas crash
+class ModelErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() { return this.state.failed ? null : this.props.children; }
+}
+
 // ─── Scene Geometry ───────────────────────────────────────────────────────────
 
 function BikePlaceholder({ transforms }: { transforms: TransformMap }) {
@@ -127,9 +131,11 @@ function BikePlaceholder({ transforms }: { transforms: TransformMap }) {
     <group position={[0, -1, 0]}>
       {/* Frame */}
       {frameId && MODEL_REGISTRY[frameId] ? (
-        <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[frameId].label}…`} />}>
-          <PartModel partId={frameId} transform={t(frameId)} />
-        </Suspense>
+        <ModelErrorBoundary>
+          <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[frameId].label}…`} />}>
+            <PartModel partId={frameId} transform={t(frameId)} />
+          </Suspense>
+        </ModelErrorBoundary>
       ) : (
         <group position={[0, 1.2, 0]}>
           <mesh rotation={[-Math.PI / 6, 0, 0]}>
@@ -145,9 +151,11 @@ function BikePlaceholder({ transforms }: { transforms: TransformMap }) {
 
       {/* Battery */}
       {batteryId && MODEL_REGISTRY[batteryId] ? (
-        <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[batteryId].label}…`} />}>
-          <PartModel partId={batteryId} transform={t(batteryId)} />
-        </Suspense>
+        <ModelErrorBoundary>
+          <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[batteryId].label}…`} />}>
+            <PartModel partId={batteryId} transform={t(batteryId)} />
+          </Suspense>
+        </ModelErrorBoundary>
       ) : (
         <group position={[0, 1.0, 0.2]}>
           <mesh rotation={[-Math.PI / 6, 0, 0]}>
@@ -159,9 +167,11 @@ function BikePlaceholder({ transforms }: { transforms: TransformMap }) {
 
       {/* Controller */}
       {controllerId && MODEL_REGISTRY[controllerId] ? (
-        <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[controllerId].label}…`} />}>
-          <PartModel partId={controllerId} transform={t(controllerId)} />
-        </Suspense>
+        <ModelErrorBoundary>
+          <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[controllerId].label}…`} />}>
+            <PartModel partId={controllerId} transform={t(controllerId)} />
+          </Suspense>
+        </ModelErrorBoundary>
       ) : (
         <group position={[0, 1.3, 0.7]}>
           <mesh rotation={[-Math.PI / 4, 0, 0]}>
@@ -173,9 +183,11 @@ function BikePlaceholder({ transforms }: { transforms: TransformMap }) {
 
       {/* Motor */}
       {motorId && MODEL_REGISTRY[motorId] ? (
-        <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[motorId].label}…`} />}>
-          <PartModel partId={motorId} transform={t(motorId)} />
-        </Suspense>
+        <ModelErrorBoundary>
+          <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[motorId].label}…`} />}>
+            <PartModel partId={motorId} transform={t(motorId)} />
+          </Suspense>
+        </ModelErrorBoundary>
       ) : (
         <group position={[0, 0.7, 0.1]}>
           <mesh rotation={[0, 0, Math.PI / 2]}>
@@ -187,9 +199,11 @@ function BikePlaceholder({ transforms }: { transforms: TransformMap }) {
 
       {/* Seat */}
       {seatId && MODEL_REGISTRY[seatId] && (
-        <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[seatId].label}…`} />}>
-          <PartModel partId={seatId} transform={t(seatId)} />
-        </Suspense>
+        <ModelErrorBoundary>
+          <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[seatId].label}…`} />}>
+            <PartModel partId={seatId} transform={t(seatId)} />
+          </Suspense>
+        </ModelErrorBoundary>
       )}
 
       {/* Wheels */}
@@ -446,13 +460,15 @@ export function Scene() {
         </Canvas>
       </ErrorBoundary>
 
-      <PositionTool
-        activeId={activeModelId}
-        setActiveId={setActiveModelId}
-        models={activeModels}
-        transforms={transforms}
-        setTransforms={setTransforms}
-      />
+      {process.env.NODE_ENV === "development" && (
+        <PositionTool
+          activeId={activeModelId}
+          setActiveId={setActiveModelId}
+          models={activeModels}
+          transforms={transforms}
+          setTransforms={setTransforms}
+        />
+      )}
     </div>
   );
 }
