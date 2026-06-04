@@ -80,8 +80,8 @@ export const PARTS_CONFIG: PartConfig[] = [
     specs: { mount_type: "eride" },
     model: { type: "stl", url: "/models/Eride%20Pro%20SS%20Frame.stl", label: "Eride Pro SS",
              color: "#888888", metalness: 0.65, roughness: 0.35 },
-    mountOffset: { pos: [0, 0, 0], rot: [0, 0, 0], scale: [1, 1, 1] },
-    calibrated: false,
+    mountOffset: { pos: [0, 1.4, 0], rot: [-1.49159265358979, -0.001592653589793, 3.13840734641021], scale: [0.05, 0.05, 0.05] },
+    calibrated: true,
   },
   {
     id: "f5", name: "Macfox X1S Frame", category: "frame",
@@ -146,8 +146,8 @@ export const PARTS_CONFIG: PartConfig[] = [
     specs: { mount_type: "eride" },
     model: { type: "stl", url: "/models/Eride%20Pro%20SS%2072V%20Motor.stl", label: "Eride Pro Motor",
              color: "#aaaaaa", metalness: 0.8,  roughness: 0.2 },
-    mountOffset: { pos: [0, 0, 0], rot: [0, 0, 0], scale: [1, 1, 1] },
-    calibrated: false,
+    mountOffset: { pos: [-0.15, 0.3, 0.7], rot: [-0.361592653589793, -1.61159265358979, 0], scale: [0.05, 0.05, 0.05] },
+    calibrated: true,
   },
 
   // ── Batteries ───────────────────────────────────────────────────────────────
@@ -170,8 +170,8 @@ export const PARTS_CONFIG: PartConfig[] = [
     specs: { voltage: 72, connector: "xt90" },
     model: { type: "stl", url: "/models/Chi%20Battery.stl", label: "Chi Battery",
              color: "#ef4444", metalness: 0.3,  roughness: 0.7 },
-    mountOffset: { pos: [0, 1.0, 0.2], rot: [0, 0, 0], scale: [1, 1, 1] },
-    calibrated: false,
+    mountOffset: { pos: [0, 1.4, 1.1], rot: [0.538407346410207, 0, 0], scale: [0.045, 0.045, 0.045] },
+    calibrated: true,
   },
   {
     id: "b4", name: "Tuttio Chi Battery", category: "battery",
@@ -206,8 +206,8 @@ export const PARTS_CONFIG: PartConfig[] = [
     specs: { max_voltage: 84, min_voltage: 48, connectors: ["xt90"] },
     model: { type: "stl", url: "/models/Eride%20Pro%20Controller.stl", label: "Eride Pro Ctrl",
              color: "#06b6d4", metalness: 0.5,  roughness: 0.5 },
-    mountOffset: { pos: [0, 1.3, 0.7], rot: [0, 0, 0], scale: [1, 1, 1] },
-    calibrated: false,
+    mountOffset: { pos: [0, 1.18, 1.38], rot: [0.418407346410207, 0, 3.13840734641021], scale: [0.05, 0.05, 0.05] },
+    calibrated: true,
   },
 
   // ── Seat ────────────────────────────────────────────────────────────────────
@@ -218,8 +218,8 @@ export const PARTS_CONFIG: PartConfig[] = [
     specs: {},
     model: { type: "stl", url: "/models/Eride%20OEM%20Seat.stl", label: "Eride OEM Seat",
              color: "#1c1c2e", metalness: 0.1,  roughness: 0.9 },
-    mountOffset: { pos: [0, 0, 0], rot: [0, 0, 0], scale: [1, 1, 1] },
-    calibrated: false,
+    mountOffset: { pos: [0, 2.84, -0.08], rot: [1.01840734641021, 3.10840734641021, 0], scale: [0.0757, 0.0757, 0.0757] },
+    calibrated: true,
   },
 ];
 

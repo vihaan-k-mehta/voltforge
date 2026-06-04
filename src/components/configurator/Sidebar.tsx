@@ -1,11 +1,32 @@
 "use client";
 
-import { useConfiguratorStore, PartCategory } from "@/store/useConfiguratorStore";
+import { useConfiguratorStore, PartCategory, Part } from "@/store/useConfiguratorStore";
 import { PARTS_BY_CATEGORY } from "@/data/parts";
 import { useState, useRef, type FC } from "react";
-import { ChevronRight, Settings2, Battery, Zap, Activity, Armchair } from "lucide-react";
+import { ChevronRight, Settings2, Battery, Zap, Activity, Armchair, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+
+function getSpecChips(category: PartCategory, specs: Part["specs"]): string[] {
+  if (!specs) return [];
+  const chips: string[] = [];
+  switch (category) {
+    case "frame":
+    case "motor":
+      if (specs.mount_type) chips.push(`${String(specs.mount_type).replace(/-/g, " ")} mount`);
+      break;
+    case "battery":
+      if (specs.voltage)    chips.push(`${specs.voltage}V`);
+      if (specs.connector)  chips.push(String(specs.connector).toUpperCase());
+      break;
+    case "controller":
+      if (specs.max_voltage) chips.push(`≤ ${specs.max_voltage}V`);
+      if (Array.isArray(specs.connectors) && specs.connectors.length)
+        chips.push(specs.connectors.map((c: string) => c.toUpperCase()).join(" / "));
+      break;
+  }
+  return chips.slice(0, 2);
+}
 
 const CATEGORIES: { id: PartCategory; label: string; icon: FC<{ className?: string }> }[] = [
   { id: "frame",      label: "Frame",      icon: Settings2 },
@@ -16,7 +37,7 @@ const CATEGORIES: { id: PartCategory; label: string; icon: FC<{ className?: stri
 ];
 
 export function Sidebar() {
-  const { selectedParts, setPart, totalPrice, issues } = useConfiguratorStore();
+  const { selectedParts, setPart, totalPrice, issues, clearBuild } = useConfiguratorStore();
   const [activeCategory, setActiveCategory] = useState<PartCategory | null>(null);
   const [saved, setSaved] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -40,12 +61,21 @@ export function Sidebar() {
           <span className="text-xl font-bold text-blue-400">${totalPrice().toLocaleString()}</span>
         </div>
 
-        <button
-          onClick={handleSave}
-          className="w-full mt-4 bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
-        >
-          {saved ? "Build Saved!" : "Save Build"}
-        </button>
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={handleSave}
+            className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-lg transition-colors"
+          >
+            {saved ? "Build Saved!" : "Save Build"}
+          </button>
+          <button
+            onClick={() => clearBuild()}
+            className="px-4 py-3 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 transition-colors"
+            title="Clear build"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
@@ -81,27 +111,37 @@ export function Sidebar() {
                 const isSelected = !!selectedParts[cat.id];
                 const Icon = cat.icon;
                 return (
-                  <button
-                    key={cat.id}
-                    onClick={() => setActiveCategory(cat.id)}
-                    className="w-full flex items-center justify-between p-4 glass-button rounded-xl group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "p-2 rounded-lg transition-colors",
-                        isSelected ? "bg-blue-500/20 text-blue-400" : "bg-white/5 text-zinc-400 group-hover:text-white"
-                      )}>
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <div className="text-left">
-                        <div className="font-medium text-white">{cat.label}</div>
-                        <div className="text-xs text-zinc-500">
-                          {isSelected ? selectedParts[cat.id]?.name : "None selected"}
+                  <div key={cat.id} className="flex items-center gap-2">
+                    <button
+                      onClick={() => setActiveCategory(cat.id)}
+                      className="flex-1 flex items-center justify-between p-4 glass-button rounded-xl group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "p-2 rounded-lg transition-colors",
+                          isSelected ? "bg-blue-500/20 text-blue-400" : "bg-white/5 text-zinc-400 group-hover:text-white"
+                        )}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div className="text-left">
+                          <div className="font-medium text-white">{cat.label}</div>
+                          <div className="text-xs text-zinc-500">
+                            {isSelected ? selectedParts[cat.id]?.name : "None selected"}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-zinc-500 group-hover:text-white transition-colors" />
-                  </button>
+                      <ChevronRight className="w-5 h-5 text-zinc-500 group-hover:text-white transition-colors" />
+                    </button>
+                    {isSelected && (
+                      <button
+                        onClick={() => setPart(cat.id, null)}
+                        className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+                        aria-label={`Remove ${cat.label}`}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </motion.div>
@@ -142,6 +182,18 @@ export function Sidebar() {
                         </div>
                         <div className="font-mono text-sm text-blue-400">${part.price}</div>
                       </div>
+                      {(() => {
+                        const chips = getSpecChips(activeCategory, part.specs);
+                        return chips.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {chips.map((chip) => (
+                              <span key={chip} className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-zinc-400 font-mono">
+                                {chip}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null;
+                      })()}
                     </button>
                   );
                 })}
