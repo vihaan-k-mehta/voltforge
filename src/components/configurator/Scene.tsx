@@ -41,6 +41,7 @@ const DEFAULT_TRANSFORMS: TransformMap = Object.fromEntries(
 // ─────────────────────────────────────────────────────────────────────────────
 
 useGLTF.setDecoderPath("/draco/");
+useGLTF.preload("/models/surronframe.draco.glb");
 useGLTF.preload("/models/talaria.frame.draco.glb");
 useGLTF.preload("/models/kofactoryspecmotor.draco.glb");
 useGLTF.preload("/models/sotionmotor.draco.glb");

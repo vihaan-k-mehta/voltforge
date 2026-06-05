@@ -53,8 +53,10 @@ export const PARTS_CONFIG: PartConfig[] = [
     id: "f1", name: "Light Bee X Frame", category: "frame",
     price: 450, manufacturer: "Sur-Ron",
     specs: { mount_type: "sur-ron" },
-    // surron.frame.glb hosted externally — placeholder until CDN URL is set
-    calibrated: true,
+    model: { type: "glb", url: "/models/surronframe.draco.glb", label: "Sur-Ron Light Bee X",
+             color: "#555555", metalness: 0.7, roughness: 0.3 },
+    mountOffset: { pos: [0, 0, 0], rot: [0, 0, 0], scale: [1, 1, 1] },
+    calibrated: false,
   },
   {
     id: "f2", name: "Sting R Frame", category: "frame",

@@ -40,3 +40,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 public/models/surron.frame.glb
+public/models/surronframe.glb
