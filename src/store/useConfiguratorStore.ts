@@ -15,8 +15,10 @@ export interface Part {
 
 export interface ConfiguratorState {
   selectedParts: Record<PartCategory, Part | null>;
+  partColors: Record<string, string>;
   issues: CompatibilityIssue[];
   setPart: (category: PartCategory, part: Part | null) => void;
+  setPartColor: (partId: string, color: string) => void;
   clearBuild: () => void;
   totalPrice: () => number;
 }
@@ -36,6 +38,7 @@ export const useConfiguratorStore = create<ConfiguratorState>()(
   persist(
     (set, get) => ({
       selectedParts: initialState,
+      partColors: {},
       issues: [],
       setPart: (category, part) => {
         set((state) => {
@@ -43,6 +46,8 @@ export const useConfiguratorStore = create<ConfiguratorState>()(
           return { selectedParts: newParts, issues: evaluateCompatibility(newParts) };
         });
       },
+      setPartColor: (partId, color) =>
+        set((state) => ({ partColors: { ...state.partColors, [partId]: color } })),
       clearBuild: () => set({ selectedParts: initialState, issues: [] }),
       totalPrice: () => {
         const parts = Object.values(get().selectedParts);
@@ -51,7 +56,7 @@ export const useConfiguratorStore = create<ConfiguratorState>()(
     }),
     {
       name: 'voltforge_build',
-      partialize: (state) => ({ selectedParts: state.selectedParts }),
+      partialize: (state) => ({ selectedParts: state.selectedParts, partColors: state.partColors }),
     }
   )
 );

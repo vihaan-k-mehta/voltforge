@@ -1,7 +1,7 @@
 "use client";
 
 import { useConfiguratorStore, PartCategory, Part } from "@/store/useConfiguratorStore";
-import { PARTS_BY_CATEGORY } from "@/data/parts";
+import { PARTS_BY_CATEGORY, PARTS_BY_ID } from "@/data/parts";
 import { useState, useRef, type FC } from "react";
 import { ChevronRight, Settings2, Battery, Zap, Activity, Armchair, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,7 +37,7 @@ const CATEGORIES: { id: PartCategory; label: string; icon: FC<{ className?: stri
 ];
 
 export function Sidebar() {
-  const { selectedParts, setPart, totalPrice, issues, clearBuild } = useConfiguratorStore();
+  const { selectedParts, setPart, totalPrice, issues, clearBuild, partColors, setPartColor } = useConfiguratorStore();
   const [activeCategory, setActiveCategory] = useState<PartCategory | null>(null);
   const [saved, setSaved] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -165,36 +165,55 @@ export function Sidebar() {
                   const isSelected = selectedParts[activeCategory]?.id === part.id;
 
                   return (
-                    <button
-                      key={part.id}
-                      onClick={() => setPart(activeCategory, isSelected ? null : part)}
-                      className={cn(
-                        "w-full text-left p-4 rounded-xl border transition-all",
-                        isSelected
-                          ? "bg-blue-500/10 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.15)]"
-                          : "glass-button border-white/5 hover:border-white/20"
-                      )}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="text-xs text-zinc-500 mb-1">{part.manufacturer}</div>
-                          <div className="font-medium text-white">{part.name}</div>
-                        </div>
-                        <div className="font-mono text-sm text-blue-400">${part.price}</div>
-                      </div>
-                      {(() => {
-                        const chips = getSpecChips(activeCategory, part.specs);
-                        return chips.length > 0 ? (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {chips.map((chip) => (
-                              <span key={chip} className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-zinc-400 font-mono">
-                                {chip}
-                              </span>
-                            ))}
+                    <div key={part.id} className="relative">
+                      <button
+                        onClick={() => setPart(activeCategory, isSelected ? null : part)}
+                        className={cn(
+                          "w-full text-left p-4 rounded-xl border transition-all",
+                          isSelected
+                            ? "bg-blue-500/10 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.15)]"
+                            : "glass-button border-white/5 hover:border-white/20"
+                        )}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="text-xs text-zinc-500 mb-1">{part.manufacturer}</div>
+                            <div className="font-medium text-white">{part.name}</div>
                           </div>
-                        ) : null;
-                      })()}
-                    </button>
+                          <div className="font-mono text-sm text-blue-400">${part.price}</div>
+                        </div>
+                        {(() => {
+                          const chips = getSpecChips(activeCategory, part.specs);
+                          return chips.length > 0 ? (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {chips.map((chip) => (
+                                <span key={chip} className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-zinc-400 font-mono">
+                                  {chip}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null;
+                        })()}
+                      </button>
+                      {isSelected && PARTS_BY_ID[part.id]?.model && (
+                        <label
+                          className="absolute top-3 right-10 cursor-pointer"
+                          title="Change part color"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span
+                            className="block w-5 h-5 rounded-full border-2 border-white/20 shadow-sm"
+                            style={{ background: partColors[part.id] ?? PARTS_BY_ID[part.id]!.model!.color }}
+                          />
+                          <input
+                            type="color"
+                            className="sr-only"
+                            value={partColors[part.id] ?? PARTS_BY_ID[part.id]!.model!.color}
+                            onChange={(e) => setPartColor(part.id, e.target.value)}
+                          />
+                        </label>
+                      )}
+                    </div>
                   );
                 })}
                 {(PARTS_BY_CATEGORY[activeCategory] ?? []).length === 0 && (

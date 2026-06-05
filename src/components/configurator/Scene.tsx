@@ -81,6 +81,7 @@ function STLModelMesh({ url, position, rotation, scale, color, metalness, roughn
 
 function PartModel({ partId, transform }: { partId: string; transform: Transform }) {
   const entry = MODEL_REGISTRY[partId];
+  const colorOverride = useConfiguratorStore((s) => s.partColors[partId]);
   if (!entry || !transform) return null;
 
   const props: ModelProps = {
@@ -88,7 +89,7 @@ function PartModel({ partId, transform }: { partId: string; transform: Transform
     position: transform.pos,
     rotation: transform.rot,
     scale: transform.scale,
-    color: entry.color,
+    color: colorOverride ?? entry.color,
     metalness: entry.metalness,
     roughness: entry.roughness,
   };
