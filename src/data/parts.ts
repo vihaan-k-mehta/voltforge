@@ -55,8 +55,8 @@ export const PARTS_CONFIG: PartConfig[] = [
     specs: { mount_type: "sur-ron" },
     model: { type: "glb", url: "/models/surronframe.draco.glb", label: "Sur-Ron Light Bee X",
              color: "#555555", metalness: 0.7, roughness: 0.3 },
-    mountOffset: { pos: [0, 0, 0], rot: [0, 0, 0], scale: [1, 1, 1] },
-    calibrated: false,
+    mountOffset: { pos: [-0.2, -0.9, 5.71], rot: [-0.22, 1.55, 0.2], scale: [0.08, 0.08, 0.08] },
+    calibrated: true,
   },
   {
     id: "f2", name: "Sting R Frame", category: "frame",
@@ -139,7 +139,7 @@ export const PARTS_CONFIG: PartConfig[] = [
     specs: { mount_type: "sur-ron" },
     model: { type: "glb", url: "/models/kofactoryspecmotor.draco.glb", label: "KO Factory Spec",
              color: "#eab308", metalness: 0.9,  roughness: 0.1 },
-    mountOffset: { pos: [0.7, -1.25, 2.50], rot: [-1.55, 3.15, 6.27], scale: [0.01, 0.01, 0.01] },
+    mountOffset: { pos: [0.7, -1.36, 1.75], rot: [-1.55, 3.15, 6.27], scale: [0.009, 0.009, 0.009] },
     calibrated: true,
   },
   {
