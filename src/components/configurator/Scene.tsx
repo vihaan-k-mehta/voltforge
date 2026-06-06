@@ -1,9 +1,9 @@
 "use client";
 
 import { Canvas, useLoader } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Html } from "@react-three/drei";
+import { CameraControls, useGLTF, Html } from "@react-three/drei";
 import { useConfiguratorStore } from "@/store/useConfiguratorStore";
-import { Suspense, useEffect, useState, useMemo, Component, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, useMemo, Component, type ReactNode } from "react";
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { cn } from "@/lib/utils";
@@ -393,6 +393,49 @@ function PositionTool({
   );
 }
 
+// ─── Camera Rig ───────────────────────────────────────────────────────────────
+
+// Camera positions keyed by frame id — eye position and look-at target
+const FRAME_CAMERA: Record<string, { eye: [number, number, number]; target: [number, number, number] }> = {
+  f1: { eye: [3, 1.5, 8],  target: [0, 0, 3] },    // Sur-Ron — long frame, shifted back
+  f2: { eye: [4, 1.5, 4],  target: [0, 0, 2] },    // Talaria Sting R
+  f3: { eye: [3, 1.5, 3],  target: [0, 0, 0] },    // Ebox
+  f4: { eye: [3, 1.5, 3],  target: [0, 0, 0] },    // Eride Pro SS
+  f5: { eye: [3, 1.5, 3],  target: [0, 0, 0] },    // Macfox X1S
+  f6: { eye: [3, 1.5, 3],  target: [0, 0, 0] },    // Talaria X3
+  f7: { eye: [3, 1.5, 3],  target: [0, 0, 1] },    // Tuttio
+  f8: { eye: [3, 1.5, 3],  target: [0, 0, 0] },    // Yozma IN10
+};
+const DEFAULT_CAMERA = { eye: [4, 2, 4] as [number, number, number], target: [0, 0, 0] as [number, number, number] };
+
+function CameraRig({ frameId }: { frameId: string | null }) {
+  const controlsRef = useRef<CameraControls>(null);
+  const prevFrameId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!controlsRef.current) return;
+    if (frameId === prevFrameId.current) return;
+    prevFrameId.current = frameId;
+
+    const cam = frameId ? (FRAME_CAMERA[frameId] ?? DEFAULT_CAMERA) : DEFAULT_CAMERA;
+    controlsRef.current.setLookAt(
+      cam.eye[0], cam.eye[1], cam.eye[2],
+      cam.target[0], cam.target[1], cam.target[2],
+      true // animate
+    );
+  }, [frameId]);
+
+  return (
+    <CameraControls
+      ref={controlsRef}
+      minPolarAngle={Math.PI / 6}
+      maxPolarAngle={Math.PI / 2 + 0.1}
+      minDistance={2}
+      maxDistance={14}
+    />
+  );
+}
+
 // ─── Root Scene ───────────────────────────────────────────────────────────────
 
 function loadTransforms(): TransformMap {
@@ -433,6 +476,8 @@ export function Scene() {
     }
   }, [activeModels, activeModelId]);
 
+  const frameId = selectedParts.frame?.id ?? null;
+
   return (
     <div className="relative h-full w-full">
       <ErrorBoundary>
@@ -443,14 +488,7 @@ export function Scene() {
           <pointLight position={[-10, -10, -10]} intensity={1} />
           <pointLight position={[10, 0, -10]} intensity={1} />
           <BikePlaceholder transforms={transforms} />
-          <OrbitControls
-            makeDefault
-            minPolarAngle={Math.PI / 4}
-            maxPolarAngle={Math.PI / 2 + 0.1}
-            enablePan={false}
-            minDistance={3}
-            maxDistance={10}
-          />
+          <CameraRig frameId={frameId} />
         </Canvas>
       </ErrorBoundary>
 
