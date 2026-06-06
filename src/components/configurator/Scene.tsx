@@ -208,15 +208,7 @@ function BikePlaceholder({ transforms }: { transforms: TransformMap }) {
         </ModelErrorBoundary>
       )}
 
-      {/* Wheels */}
-      <mesh position={[0, 0.6, 1.1]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.6, 0.6, 0.1, 32]} />
-        <meshStandardMaterial color="#111" />
-      </mesh>
-      <mesh position={[0, 0.6, -1.1]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.6, 0.6, 0.1, 32]} />
-        <meshStandardMaterial color="#111" />
-      </mesh>
+
     </group>
   );
 }
