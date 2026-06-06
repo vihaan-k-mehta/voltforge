@@ -41,6 +41,8 @@ export interface PartConfig {
   /** false = transforms are placeholder [0,0,0]/scale[1,1,1]. Triggers a
    *  warning in the Position Tool. true / absent = calibrated. */
   calibrated?:  boolean;
+  /** Short warning shown in the sidebar card, e.g. known model issues. */
+  note?:        string;
 }
 
 // ─── Parts Catalog ────────────────────────────────────────────────────────────
@@ -73,8 +75,8 @@ export const PARTS_CONFIG: PartConfig[] = [
     specs: { mount_type: "ebox" },
     model: { type: "stl", url: "/models/Ebox%20Frame.stl", label: "Ebox Frame",
              color: "#777777", metalness: 0.6,  roughness: 0.4 },
-    mountOffset: { pos: [0, 0, 0], rot: [0, 0, 0], scale: [1, 1, 1] },
-    calibrated: false,
+    mountOffset: { pos: [0, 0, 0], rot: [-1.55159265358979, 0, 0], scale: [0.07, 0.07, 0.07] },
+    calibrated: true,
   },
   {
     id: "f4", name: "Eride Pro SS Frame", category: "frame",
@@ -91,8 +93,8 @@ export const PARTS_CONFIG: PartConfig[] = [
     specs: { mount_type: "macfox" },
     model: { type: "stl", url: "/models/Macfox%20X1S%20Frame.stl", label: "Macfox X1S",
              color: "#999999", metalness: 0.6,  roughness: 0.4 },
-    mountOffset: { pos: [0, 0, 0], rot: [0, 0, 0], scale: [1, 1, 1] },
-    calibrated: false,
+    mountOffset: { pos: [0, 0, 0], rot: [1.55840734641021, 3.13840734641021, -1.49159265358979], scale: [0.05, 0.05, 0.05] },
+    calibrated: true,
   },
   {
     id: "f6", name: "Talaria X3 Frame", category: "frame",
@@ -100,8 +102,9 @@ export const PARTS_CONFIG: PartConfig[] = [
     specs: { mount_type: "talaria" },
     model: { type: "stl", url: "/models/Talaria%20X3%20Frame.stl", label: "Talaria X3",
              color: "#555555", metalness: 0.7,  roughness: 0.3 },
-    mountOffset: { pos: [0, 0, 0], rot: [0, 0, 0], scale: [1, 1, 1] },
-    calibrated: false,
+    mountOffset: { pos: [0, 0, 0], rot: [-1.55159265358979, -0.061592653589793, 0], scale: [0.05, 0.05, 0.05] },
+    calibrated: true,
+    note: "Model geometry issues — not suitable for demo.",
   },
   {
     id: "f7", name: "Tuttio Frame", category: "frame",
@@ -109,8 +112,8 @@ export const PARTS_CONFIG: PartConfig[] = [
     specs: { mount_type: "tuttio" },
     model: { type: "stl", url: "/models/Tuttio%20Frame.stl", label: "Tuttio Frame",
              color: "#666666", metalness: 0.65, roughness: 0.35 },
-    mountOffset: { pos: [0, 0, 0], rot: [0, 0, 0], scale: [1, 1, 1] },
-    calibrated: false,
+    mountOffset: { pos: [0, 0.51, 1.02], rot: [-1.61159265358979, -0.001592653589793, -0.001592653589793], scale: [0.05, 0.05, 0.05] },
+    calibrated: true,
   },
   {
     id: "f8", name: "Yozma IN10 Frame", category: "frame",
@@ -118,8 +121,9 @@ export const PARTS_CONFIG: PartConfig[] = [
     specs: { mount_type: "yozma" },
     model: { type: "stl", url: "/models/Yozma%20IN10%20Frame.stl", label: "Yozma IN10",
              color: "#777777", metalness: 0.6,  roughness: 0.4 },
-    mountOffset: { pos: [0, 0, 0], rot: [0, 0, 0], scale: [1, 1, 1] },
-    calibrated: false,
+    mountOffset: { pos: [0, 0, 0], rot: [-1.49159265358979, 0, 0], scale: [0.05, 0.05, 0.05] },
+    calibrated: true,
+    note: "Model geometry issues — not suitable for demo.",
   },
 
   // ── Motors ──────────────────────────────────────────────────────────────────
@@ -181,8 +185,8 @@ export const PARTS_CONFIG: PartConfig[] = [
     specs: { voltage: 72, connector: "xt90" },
     model: { type: "stl", url: "/models/Tuttio%20Chi%20Battery.stl", label: "Tuttio Chi Battery",
              color: "#dc2626", metalness: 0.3,  roughness: 0.7 },
-    mountOffset: { pos: [0, 1.0, 0.2], rot: [0, 0, 0], scale: [1, 1, 1] },
-    calibrated: false,
+    mountOffset: { pos: [0, 0.82, 0.06], rot: [-0.22, 0, 0], scale: [0.0465, 0.0465, 0.0465] },
+    calibrated: true,
   },
 
   // ── Controllers ─────────────────────────────────────────────────────────────
@@ -199,8 +203,8 @@ export const PARTS_CONFIG: PartConfig[] = [
     specs: { max_voltage: 72, min_voltage: 48, connectors: ["supco"] },
     model: { type: "stl", url: "/models/BAC4000%20Controller.stl", label: "BAC4000",
              color: "#10b981", metalness: 0.5,  roughness: 0.5 },
-    mountOffset: { pos: [0, 1.3, 0.7], rot: [0, 0, 0], scale: [1, 1, 1] },
-    calibrated: false,
+    mountOffset: { pos: [-0.14, 1.51, 1.63], rot: [0.358407346410207, 0, 1.6], scale: [0.0648, 0.0648, 0.0648] },
+    calibrated: true,
   },
   {
     id: "c3", name: "Eride Pro Controller", category: "controller",

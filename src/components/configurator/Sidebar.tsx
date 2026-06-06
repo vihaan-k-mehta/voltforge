@@ -194,6 +194,12 @@ export function Sidebar() {
                             </div>
                           ) : null;
                         })()}
+                        {PARTS_BY_ID[part.id]?.note && (
+                          <div className="mt-2 text-[10px] text-yellow-500/80 flex items-center gap-1">
+                            <span>⚠</span>
+                            <span>{PARTS_BY_ID[part.id]!.note}</span>
+                          </div>
+                        )}
                       </button>
                       {isSelected && PARTS_BY_ID[part.id]?.model && (
                         <label
