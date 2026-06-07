@@ -2,10 +2,31 @@
 
 import { useConfiguratorStore, PartCategory, Part } from "@/store/useConfiguratorStore";
 import { PARTS_BY_CATEGORY, PARTS_BY_ID } from "@/data/parts";
-import { useState, useRef, type FC } from "react";
+import { useState, useRef, useEffect, type FC } from "react";
 import { ChevronRight, Settings2, Battery, Zap, Activity, Armchair, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { cn } from "@/lib/utils";
+
+const COLOR_SWATCHES = [
+  { label: "Black",  hex: "#1a1a1a" },
+  { label: "White",  hex: "#f0f0f0" },
+  { label: "Silver", hex: "#9ca3af" },
+  { label: "Red",    hex: "#ef4444" },
+  { label: "Blue",   hex: "#3b82f6" },
+  { label: "Gold",   hex: "#eab308" },
+  { label: "Orange", hex: "#f97316" },
+  { label: "Green",  hex: "#22c55e" },
+];
+
+function AnimatedPrice({ value }: { value: number }) {
+  const motionVal = useMotionValue(value);
+  const spring = useSpring(motionVal, { stiffness: 120, damping: 20 });
+  const display = useTransform(spring, (v) => `$${Math.round(v).toLocaleString()}`);
+
+  useEffect(() => { motionVal.set(value); }, [value, motionVal]);
+
+  return <motion.span>{display}</motion.span>;
+}
 
 function getSpecChips(category: PartCategory, specs: Part["specs"]): string[] {
   if (!specs) return [];
@@ -58,7 +79,7 @@ export function Sidebar() {
 
         <div className="mt-4 p-4 glass-panel rounded-lg flex justify-between items-center">
           <span className="text-zinc-300 font-medium">Estimated Total</span>
-          <span className="text-xl font-bold text-blue-400">${totalPrice().toLocaleString()}</span>
+          <span className="text-xl font-bold text-blue-400"><AnimatedPrice value={totalPrice()} /></span>
         </div>
 
         <div className="flex gap-2 mt-4">
@@ -202,22 +223,45 @@ export function Sidebar() {
                         )}
                       </button>
                       {isSelected && PARTS_BY_ID[part.id]?.model && (
-                        <label
-                          className="absolute top-3 right-10 cursor-pointer"
-                          title="Change part color"
+                        <div
+                          className="mt-3 pt-3 border-t border-white/5"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <span
-                            className="block w-5 h-5 rounded-full border-2 border-white/20 shadow-sm"
-                            style={{ background: partColors[part.id] ?? PARTS_BY_ID[part.id]!.model!.color }}
-                          />
-                          <input
-                            type="color"
-                            className="sr-only"
-                            value={partColors[part.id] ?? PARTS_BY_ID[part.id]!.model!.color}
-                            onChange={(e) => setPartColor(part.id, e.target.value)}
-                          />
-                        </label>
+                          <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Color</div>
+                          <div className="flex flex-wrap gap-1.5 items-center">
+                            {COLOR_SWATCHES.map((swatch) => {
+                              const active = (partColors[part.id] ?? PARTS_BY_ID[part.id]!.model!.color) === swatch.hex;
+                              return (
+                                <button
+                                  key={swatch.hex}
+                                  title={swatch.label}
+                                  onClick={() => setPartColor(part.id, swatch.hex)}
+                                  className={cn(
+                                    "w-5 h-5 rounded-full border-2 transition-transform hover:scale-110",
+                                    active ? "border-white scale-110" : "border-white/20"
+                                  )}
+                                  style={{ background: swatch.hex }}
+                                />
+                              );
+                            })}
+                            <label className="cursor-pointer" title="Custom color">
+                              <span
+                                className="block w-5 h-5 rounded-full border-2 border-dashed border-white/30 hover:border-white/60 transition-colors"
+                                style={{
+                                  background: COLOR_SWATCHES.some(s => s.hex === (partColors[part.id] ?? PARTS_BY_ID[part.id]!.model!.color))
+                                    ? "transparent"
+                                    : (partColors[part.id] ?? PARTS_BY_ID[part.id]!.model!.color)
+                                }}
+                              />
+                              <input
+                                type="color"
+                                className="sr-only"
+                                value={partColors[part.id] ?? PARTS_BY_ID[part.id]!.model!.color}
+                                onChange={(e) => setPartColor(part.id, e.target.value)}
+                              />
+                            </label>
+                          </div>
+                        </div>
                       )}
                     </div>
                   );

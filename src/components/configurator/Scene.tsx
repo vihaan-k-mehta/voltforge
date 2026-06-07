@@ -1,10 +1,10 @@
 "use client";
 
-import { Canvas, useLoader } from "@react-three/fiber";
-import { CameraControls, useGLTF, Html } from "@react-three/drei";
+import { Canvas, useLoader, useFrame } from "@react-three/fiber";
+import { CameraControls, useGLTF, Html, Environment, ContactShadows } from "@react-three/drei";
+import * as THREE from "three";
 import { useConfiguratorStore } from "@/store/useConfiguratorStore";
 import { Suspense, useEffect, useRef, useState, useMemo, Component, type ReactNode } from "react";
-import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { cn } from "@/lib/utils";
 import { PARTS_CONFIG, PARTS_BY_ID, type PartModel3D } from "@/data/parts";
@@ -47,6 +47,21 @@ useGLTF.preload("/models/kofactoryspecmotor.draco.glb");
 useGLTF.preload("/models/sotionmotor.draco.glb");
 
 // ─── 3D Model Components ──────────────────────────────────────────────────────
+
+// Wraps a model group — springs its scale from 0→1 on mount for a pop-in effect
+function ScaleIn({ children }: { children: React.ReactNode }) {
+  const ref = useRef<THREE.Group>(null);
+  const progress = useRef(0);
+
+  useFrame((_, delta) => {
+    if (!ref.current) return;
+    progress.current = Math.min(1, progress.current + delta * 4);
+    const s = 1 - Math.pow(1 - progress.current, 3); // ease-out cubic
+    ref.current.scale.setScalar(s);
+  });
+
+  return <group ref={ref}>{children}</group>;
+}
 
 function GLBModelMesh({ url, position, rotation, scale, color, metalness, roughness }: ModelProps) {
   const { scene: original } = useGLTF(url);
@@ -133,9 +148,9 @@ function BikePlaceholder({ transforms }: { transforms: TransformMap }) {
     <group position={[0, -1, 0]}>
       {/* Frame */}
       {frameId && MODEL_REGISTRY[frameId] ? (
-        <ModelErrorBoundary>
+        <ModelErrorBoundary key={frameId}>
           <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[frameId].label}…`} />}>
-            <PartModel partId={frameId} transform={t(frameId)} />
+            <ScaleIn><PartModel partId={frameId} transform={t(frameId)} /></ScaleIn>
           </Suspense>
         </ModelErrorBoundary>
       ) : (
@@ -153,9 +168,9 @@ function BikePlaceholder({ transforms }: { transforms: TransformMap }) {
 
       {/* Battery */}
       {batteryId && MODEL_REGISTRY[batteryId] ? (
-        <ModelErrorBoundary>
+        <ModelErrorBoundary key={batteryId}>
           <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[batteryId].label}…`} />}>
-            <PartModel partId={batteryId} transform={t(batteryId)} />
+            <ScaleIn><PartModel partId={batteryId} transform={t(batteryId)} /></ScaleIn>
           </Suspense>
         </ModelErrorBoundary>
       ) : (
@@ -169,9 +184,9 @@ function BikePlaceholder({ transforms }: { transforms: TransformMap }) {
 
       {/* Controller */}
       {controllerId && MODEL_REGISTRY[controllerId] ? (
-        <ModelErrorBoundary>
+        <ModelErrorBoundary key={controllerId}>
           <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[controllerId].label}…`} />}>
-            <PartModel partId={controllerId} transform={t(controllerId)} />
+            <ScaleIn><PartModel partId={controllerId} transform={t(controllerId)} /></ScaleIn>
           </Suspense>
         </ModelErrorBoundary>
       ) : (
@@ -185,9 +200,9 @@ function BikePlaceholder({ transforms }: { transforms: TransformMap }) {
 
       {/* Motor */}
       {motorId && MODEL_REGISTRY[motorId] ? (
-        <ModelErrorBoundary>
+        <ModelErrorBoundary key={motorId}>
           <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[motorId].label}…`} />}>
-            <PartModel partId={motorId} transform={t(motorId)} />
+            <ScaleIn><PartModel partId={motorId} transform={t(motorId)} /></ScaleIn>
           </Suspense>
         </ModelErrorBoundary>
       ) : (
@@ -201,9 +216,9 @@ function BikePlaceholder({ transforms }: { transforms: TransformMap }) {
 
       {/* Seat */}
       {seatId && MODEL_REGISTRY[seatId] && (
-        <ModelErrorBoundary>
+        <ModelErrorBoundary key={seatId}>
           <Suspense fallback={<LoadingOverlay message={`Loading ${MODEL_REGISTRY[seatId].label}…`} />}>
-            <PartModel partId={seatId} transform={t(seatId)} />
+            <ScaleIn><PartModel partId={seatId} transform={t(seatId)} /></ScaleIn>
           </Suspense>
         </ModelErrorBoundary>
       )}
@@ -478,19 +493,44 @@ export function Scene() {
 
   const frameId = selectedParts.frame?.id ?? null;
 
+  const hasAnyPart = Object.values(selectedParts).some(Boolean);
+
   return (
     <div className="relative h-full w-full">
       <ErrorBoundary>
-        <Canvas camera={{ position: [4, 2, 4], fov: 45 }}>
+        <Canvas
+          camera={{ position: [4, 2, 4], fov: 45 }}
+          gl={{ toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
+        >
           <color attach="background" args={["#09090b"]} />
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[10, 10, 5]} intensity={2} />
-          <pointLight position={[-10, -10, -10]} intensity={1} />
-          <pointLight position={[10, 0, -10]} intensity={1} />
+          <Environment preset="city" background={false} />
+          <ambientLight intensity={0.3} />
+          <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
           <BikePlaceholder transforms={transforms} />
+          <ContactShadows
+            position={[0, -1.01, 0]}
+            opacity={0.5}
+            scale={12}
+            blur={2.5}
+            far={4}
+            color="#000000"
+          />
+          <mesh position={[0, -1.01, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+            <planeGeometry args={[30, 30]} />
+            <meshStandardMaterial color="#0a0a0b" metalness={0.1} roughness={0.9} />
+          </mesh>
           <CameraRig frameId={frameId} />
         </Canvas>
       </ErrorBoundary>
+
+      {/* Empty state hint */}
+      {!hasAnyPart && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="text-center">
+            <p className="text-zinc-500 text-sm">← Select a frame to start building</p>
+          </div>
+        </div>
+      )}
 
       {process.env.NODE_ENV === "development" && (
         <PositionTool
