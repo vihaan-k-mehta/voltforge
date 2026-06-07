@@ -503,9 +503,11 @@ export function Scene() {
           gl={{ toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
         >
           <color attach="background" args={["#09090b"]} />
-          <Environment preset="city" background={false} />
-          <ambientLight intensity={0.3} />
-          <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
+          <Environment preset="city" background={false} environmentIntensity={0.6} />
+          <ambientLight intensity={0.8} />
+          <directionalLight position={[10, 10, 5]} intensity={2} />
+          <pointLight position={[-10, -10, -10]} intensity={1} />
+          <pointLight position={[10, 0, -10]} intensity={1} />
           <BikePlaceholder transforms={transforms} />
           <ContactShadows
             position={[0, -1.01, 0]}
