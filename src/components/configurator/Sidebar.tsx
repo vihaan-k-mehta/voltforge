@@ -19,13 +19,14 @@ const COLOR_SWATCHES = [
 ];
 
 function AnimatedPrice({ value }: { value: number }) {
-  const motionVal = useMotionValue(value);
+  // Always start at 0 so server and client agree on initial render, then spring to real value
+  const motionVal = useMotionValue(0);
   const spring = useSpring(motionVal, { stiffness: 120, damping: 20 });
   const display = useTransform(spring, (v) => `$${Math.round(v).toLocaleString()}`);
 
   useEffect(() => { motionVal.set(value); }, [value, motionVal]);
 
-  return <motion.span>{display}</motion.span>;
+  return <motion.span suppressHydrationWarning>{display}</motion.span>;
 }
 
 function getSpecChips(category: PartCategory, specs: Part["specs"]): string[] {
