@@ -80,7 +80,9 @@ export function Sidebar() {
 
         <div className="mt-4 p-4 glass-panel rounded-lg flex justify-between items-center">
           <span className="text-zinc-300 font-medium">Estimated Total</span>
-          <span className="text-xl font-bold text-blue-400"><AnimatedPrice value={totalPrice()} /></span>
+          <span className="text-xl font-bold text-blue-400" suppressHydrationWarning>
+            <AnimatedPrice value={totalPrice()} />
+          </span>
         </div>
 
         <div className="flex gap-2 mt-4">
